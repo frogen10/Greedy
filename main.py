@@ -4,6 +4,7 @@ import pandas as pd
 import unidecode
 from itertools import permutations
 from math import radians, sin, cos, sqrt, atan2
+import os
 
 class TSP:
     def __init__(self, cities_names, x, y, city_goods, n_population, crossover_per, mutation_per, n_generations, numbers_of_cars, car_max_capacity, minimum_cities, main_city):
@@ -72,29 +73,80 @@ class TSP:
                         car['capacity'] -= goods
                     else:
                         cars_full.add(cars.index(car))
-                
-            for car in cars:
-                car['cities'].insert(0, self.main_city)
-            population.append([car['cities'] for car in cars])
+            if(len(all_Cities) == 0):
+                for car in cars:
+                    car['cities'].insert(0, self.main_city)
+                population.append([car['cities'] for car in cars])
         return population
+
+    def is_valid_car(self, car: list, all_cities_df):
+        total_goods = sum(all_cities_df[all_cities_df['city'] == city]['values'].iloc[0] for city in car[1:])
+        return total_goods <= self.car_max_capacity
+    
+    def check_children(self, car1, car2, all_cities_df)->bool:
+        valid_child1 = self.is_valid_car(car1, all_cities_df)
+        valid_child2 = self.is_valid_car(car2, all_cities_df)
+        
+        if valid_child1 and valid_child2:
+            #print("Both children are valid after crossover and mutation.")
+            return True
+        return False
+
+    def check_cities(self, parent, all_cities_df):
+        cities = set(all_cities_df['city'])
+        for car in parent:
+            if not self.is_valid_car(car, all_cities_df):
+                return False
+            for city in car:
+                if(city in cities):
+                    cities.remove(city)
+        if(len(cities) != 0):
+            return False
+        return True
 
     def crossover(self, parent1, parent2):
         crossover_point = random.randint(1, len(parent1) - 1)
-        child1 = parent1[:crossover_point] + parent2[crossover_point:]
-        child2 = parent2[:crossover_point] + parent1[crossover_point:]
+        child1 = parent1.copy()
+        child2 = parent2.copy()
+        car1_index = random.randint(0, len(parent1) - 1)
+        car2_index = random.randint(0, len(parent2) - 1)
+        
+        car11 = child1[car1_index]
+        car12 = child2[car2_index]
+        car21 = child2[car1_index]
+        car22 = child1[car2_index]
+        car11_temp = car11[:crossover_point]+car12[crossover_point:]
+        car12_temp = car12[:crossover_point]+car11[crossover_point:]
+        car21_temp = car21[:crossover_point]+car22[crossover_point:]
+        car22_temp = car22[:crossover_point]+car21[crossover_point:]
+        if(self.check_children(car11_temp, car12_temp, self.city_goods)):
+            child1[car1_index] = car11_temp
+            child1[car2_index] = car12_temp
+        if(self.check_children(car21_temp, car22_temp, self.city_goods)):
+            child2[car1_index] = car21_temp
+            child2[car2_index] = car22_temp
         return child1, child2
 
     def mutation(self, offspring):
+        '''Scramble Mutation
+            Randomly select two genes and swap their positions
+        '''
+        copy = [offspring.copy()]
+        result = []
         for car in offspring:
-            random.shuffle(car[1:])  # Shuffle the order of cities, excluding the main city
+            cities_to_shuffle = car[1:]  # Get the cities excluding the main city
+            random.shuffle(cities_to_shuffle)  # Shuffle the cities
+            cities_to_shuffle.insert(0, car[0])  # Insert the main city back to the car
+            result.append(cities_to_shuffle)  # Assign the shuffled cities back to the car
         return offspring
 
     def run_ga(self, city_goods, n_population, n_generations, crossover_per, mutation_per):
         population = self.initial_population(city_goods, n_population)
+        best_individual = population[0]
         for generation in range(n_generations):
             fitness = self.fitness_prob(population)
             new_population = []
-            for _ in range(n_population // 2):
+            for i in range(n_population//2):
                 parents = random.choices(population, weights=fitness, k=2)
                 if random.random() < crossover_per:
                     child1, child2 = self.crossover(parents[0], parents[1])
@@ -104,21 +156,57 @@ class TSP:
                     child1 = self.mutation(child1)
                 if random.random() < mutation_per:
                     child2 = self.mutation(child2)
-                new_population.extend([child1, child2])
+                if(self.check_cities(child1, city_goods)):
+                    new_population.append(child1)
+                if(self.check_cities(child2, city_goods)):
+                    new_population.append(child2)
             population = new_population
-        best_individual = min(population, key=self.total_dist_individual)
+            population.append(best_individual)
+            best_individual = min(population, key=self.total_dist_individual)
         return best_individual
 
     def run(self):
         best_individual = self.run_ga(self.city_goods, self.n_population, self.n_generations, self.crossover_per, self.mutation_per)
         print("Best individual (distribution of cities among cars):")
         total_goods_all_cars = 0
+        car_values = []
         for i, car in enumerate(best_individual):
             car_goods = sum(self.city_goods[self.city_goods['city'].isin(car)]['values'])
             car_distance = self.total_dist_individual([car])
             total_goods_all_cars += car_goods
+            car_values.append({
+                'Car': f"Car {i+1}",
+                'Cities': car,
+                'Total Goods': car_goods,
+                'Total Distance': car_distance
+            })
             print(f"Car {i+1}: {car}")
             print(f"  Total goods: {car_goods}")
             print(f"  Total distance traveled: {car_distance:.2f} km")
-        print("Total distance traveled by all cars:", self.total_dist_individual(best_individual))
-        print("Total goods in all cars:", total_goods_all_cars)
+        total_distance_all_cars = self.total_dist_individual(best_individual)
+        print("Total distance traveled by all cars:", total_distance_all_cars)
+        print("Total goods in all cars:", total_distance_all_cars)
+        car_values.append({
+            'Car': 'Total',
+            'Cities': '',
+            'Total Goods': total_goods_all_cars,
+            'Total Distance': total_distance_all_cars
+        })
+        df = pd.DataFrame(car_values)
+        if os.path.exists('bestvalues.csv'):
+            # Read the existing file
+            existing_df = pd.read_csv('bestvalues.csv')
+            existing_total_distance = existing_df[existing_df['Car'] == 'Total']['Total Distance'].values[0]
+            
+            # Compare the distances
+            if total_distance_all_cars < existing_total_distance:
+                # Save the new solution if the new distance is less
+                df.to_csv('bestvalues.csv', index=False)
+                print("New solution saved to bestvalues.csv")
+            else:
+                print("Existing solution is better or equal. No changes made.")
+        else:
+            # Save the new solution if the file does not exist
+            df.to_csv('bestvalues.csv', index=False)
+            print("New solution saved to bestvalues.csv")
+
