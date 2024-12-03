@@ -119,12 +119,12 @@ class TSP:
         car12_temp = car12[:crossover_point]+car11[crossover_point:]
         car21_temp = car21[:crossover_point]+car22[crossover_point:]
         car22_temp = car22[:crossover_point]+car21[crossover_point:]
-        if(self.check_children(car11_temp, car12_temp, self.city_goods)):
-            child1[car1_index] = car11_temp
-            child1[car2_index] = car12_temp
-        if(self.check_children(car21_temp, car22_temp, self.city_goods)):
-            child2[car1_index] = car21_temp
-            child2[car2_index] = car22_temp
+        
+        child1[car1_index] = car11_temp
+        child1[car2_index] = car12_temp
+        child2[car1_index] = car21_temp
+        child2[car2_index] = car22_temp
+            
         return child1, child2
 
     def mutation(self, offspring):
@@ -138,7 +138,7 @@ class TSP:
             random.shuffle(cities_to_shuffle)  # Shuffle the cities
             cities_to_shuffle.insert(0, car[0])  # Insert the main city back to the car
             result.append(cities_to_shuffle)  # Assign the shuffled cities back to the car
-        return offspring
+        return result
 
     def run_ga(self, city_goods, n_population, n_generations, crossover_per, mutation_per):
         population = self.initial_population(city_goods, n_population)
@@ -185,7 +185,7 @@ class TSP:
             print(f"  Total distance traveled: {car_distance:.2f} km")
         total_distance_all_cars = self.total_dist_individual(best_individual)
         print("Total distance traveled by all cars:", total_distance_all_cars)
-        print("Total goods in all cars:", total_distance_all_cars)
+        print("Total goods in all cars:", total_goods_all_cars)
         car_values.append({
             'Car': 'Total',
             'Cities': '',

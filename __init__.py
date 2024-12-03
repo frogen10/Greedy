@@ -1,6 +1,8 @@
 
 import pandas as pd
 from main import TSP
+import time
+
 def main():
     n_population = 250
     crossover_per = 0.8
@@ -23,7 +25,15 @@ def main():
     city_goods = df.groupby('city')['values'].sum().reset_index()
     city_goods = city_goods.sort_values(by='values', ascending=False)
     tsp = TSP(cities_names, x,y, city_goods, n_population, crossover_per, mutation_per, n_generations, numbers_of_cars, car_max_capacity, minimum_cities, main_city)
+    start_time = time.time()
     tsp.run()
+    
+    # End timer
+    end_time = time.time()
+    
+    # Calculate elapsed time
+    elapsed_time = end_time - start_time
+    print(f"Execution time: {elapsed_time:.2f} seconds")
 
 
 
