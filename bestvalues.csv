@@ -1,7 +1,7 @@
 Car,Cities,Total Goods,Total Distance
-Car 1,"['Kraków', 'Bielsko-Biała', 'Gdynia', 'Gdańsk', 'Malbork', 'Białystok']",950,1623.8455026451343
-Car 2,"['Kraków', 'Zakopane', 'Rzeszów', 'Sandomierz', 'Zamość', 'Lublin']",820,969.0536124768666
-Car 3,"['Kraków', 'Warszawa', 'Olsztyn', 'Łódź', 'Poznań', 'Szczecin', 'Szklarska Poręba', 'Wrocław']",1000,2054.5154785707064
-Car 4,"['Kraków', 'Puławy', 'Radom', 'Kielce', 'Tarnów', 'Szczucin', 'Gromnik', 'Wieliczka']",750,833.3465015800789
-Car 5,"['Kraków', 'Katowice', 'Chrzanów', 'Gliwice', 'Krynica-Zdrój', 'Krosno', 'Nowy Targ']",970,847.2930134878592
-Total,,4490,6328.054108760645
+Car 1,"['Kraków', 'Gromnik', 'Szczucin', 'Sandomierz', 'Zamość', 'Rzeszów', 'Kielce']",850,863.1928642514689
+Car 2,"['Kraków', 'Gdańsk', 'Gdynia', 'Poznań', 'Wrocław', 'Szczecin', 'Szklarska Poręba', 'Katowice']",940,2090.3816449455308
+Car 3,"['Kraków', 'Wieliczka', 'Tarnów', 'Zakopane', 'Bielsko-Biała', 'Gliwice', 'Chrzanów']",850,420.07944305788646
+Car 4,"['Kraków', 'Łódź', 'Malbork', 'Warszawa', 'Olsztyn', 'Radom', 'Krosno']",920,1539.685369263319
+Car 5,"['Kraków', 'Puławy', 'Białystok', 'Lublin', 'Krynica-Zdrój', 'Nowy Targ']",930,1114.6253778115538
+Total,,4490,6027.9646993297565
