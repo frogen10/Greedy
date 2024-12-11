@@ -27,6 +27,7 @@ def main():
     tsp = TSP(cities_names, x,y, city_goods, n_population, crossover_per, mutation_per, n_generations, numbers_of_cars, car_max_capacity, minimum_cities, main_city)
     start_time = time.time()
     tsp.run()
+    tsp.showPlot()
     
     # End timer
     end_time = time.time()

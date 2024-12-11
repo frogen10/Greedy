@@ -5,6 +5,7 @@ import unidecode
 from itertools import permutations
 from math import radians, sin, cos, sqrt, atan2
 import os
+import matplotlib.pyplot as plt
 
 class TSP:
     def __init__(self, cities_names, x, y, city_goods, n_population, crossover_per, mutation_per, n_generations, numbers_of_cars, car_max_capacity, minimum_cities, main_city):
@@ -52,9 +53,24 @@ class TSP:
         total_fitness = sum(fitness)
         fitness_prob = [f / total_fitness for f in fitness]
         return fitness_prob
+    
+    def get_best_individuals(self, city_goods):
+        if os.path.exists('bestvalues.csv'):
+            # Read the existing file
+            best_values_df = pd.read_csv('bestvalues.csv')
+            best_individuals = []
+            for i in range(len(best_values_df) - 1):  # Exclude the last row which is the total
+                car_cities = best_values_df.iloc[i]['Cities'].strip("[]").replace("'", "").split(", ")
+                best_individuals.append(car_cities)
+            return best_individuals
+        raise ValueError("No best values found in the CSV file.")
 
     def initial_population(self, city_goods, n_population=250):
         population = []
+        try:
+            population.append(self.get_best_individuals(city_goods))
+        except:
+            pass
         for _ in range(n_population):
             cars = [{'capacity': self.car_max_capacity, 'cities': []} for _ in range(self.numbers_of_cars)]
             all_Cities = city_goods.copy()
@@ -209,4 +225,42 @@ class TSP:
             # Save the new solution if the file does not exist
             df.to_csv('bestvalues.csv', index=False)
             print("New solution saved to bestvalues.csv")
+    
+    def showPlot(self):
+
+        shortest_path =self.get_best_individuals(self.city_goods)
+        
+        fig, ax = plt.subplots()
+        # Define colors for different cars
+        colors = ['r', 'g', 'b', 'c', 'm']
+
+        for idx, car_path in enumerate(shortest_path):
+            x_shortest = []
+            y_shortest = []
+            for city in car_path:
+                if city in self.city_coords:
+                    x_value, y_value = self.city_coords[city]
+                    x_shortest.append(x_value)
+                    y_shortest.append(y_value)
+
+            # Close the loop by adding the starting city to the end
+            if x_shortest and y_shortest:
+                x_shortest.append(x_shortest[0])
+                y_shortest.append(y_shortest[0])
+
+            # Plot the shortest path for each car
+            ax.plot(x_shortest, y_shortest, '--o', label=f'Car {idx+1} Route', linewidth=2.5, color=colors[idx % len(colors)])
+
+        plt.legend()
+
+        # Plot all possible connections (optional)
+        for i in range(len(self.x)):
+            for j in range(i + 1, len(self.x)):
+                ax.plot([self.x[i], self.x[j]], [self.y[i], self.y[j]], 'k-', alpha=0.09, linewidth=1)
+
+        # Add labels and title
+        ax.set_xlabel('X Coordinate')
+        ax.set_ylabel('Y Coordinate')
+        ax.set_title('Shortest Paths for All Cars')
+        plt.show()
 
