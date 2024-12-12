@@ -5,9 +5,10 @@ import unidecode
 from itertools import permutations
 from math import radians, sin, cos, sqrt, atan2
 import os
+import matplotlib.pyplot as plt
 
 class TSP:
-    def __init__(self, cities_names, x, y, city_goods, n_population, crossover_per, mutation_per, n_generations, numbers_of_cars, car_max_capacity, minimum_cities, main_city):
+    def __init__(self, cities_names, x, y, city_goods, n_population, crossover_per, mutation_per, n_generations, numbers_of_cars, car_max_capacity, minimum_cities, main_city, dyingFactor):
         self.cities_names = cities_names
         self.x = x
         self.y = y
@@ -21,6 +22,7 @@ class TSP:
         self.car_max_capacity = car_max_capacity
         self.minimum_cities = minimum_cities
         self.main_city = main_city  # Main city
+        self.dyingFactor = dyingFactor
 
     def dist_two_cities(self, city_1, city_2):
         # Haversine formula to calculate the distance between two points on the Earth's surface
@@ -51,11 +53,26 @@ class TSP:
         fitness = [1 / dist for dist in total_dist_all_individuals]
         total_fitness = sum(fitness)
         fitness_prob = [f / total_fitness for f in fitness]
-        return fitness_prob
+        return fitness_prob, total_fitness
+    
+    def get_best_individuals(self, city_goods):
+        if os.path.exists('bestvalues.csv'):
+            # Read the existing file
+            best_values_df = pd.read_csv('bestvalues.csv')
+            best_individuals = []
+            for i in range(len(best_values_df) - 1):  # Exclude the last row which is the total
+                car_cities = best_values_df.iloc[i]['Cities'].strip("[]").replace("'", "").split(", ")
+                best_individuals.append(car_cities)
+            return best_individuals
+        raise ValueError("No best values found in the CSV file.")
 
     def initial_population(self, city_goods, n_population=250):
         population = []
-        for _ in range(n_population):
+        try:
+            population.append(self.get_best_individuals(city_goods))
+        except:
+            pass
+        while len(population) != n_population:
             cars = [{'capacity': self.car_max_capacity, 'cities': []} for _ in range(self.numbers_of_cars)]
             all_Cities = city_goods.copy()
             all_Cities = all_Cities[all_Cities['city'] != self.main_city]
@@ -100,37 +117,82 @@ class TSP:
             for city in car:
                 if(city in cities):
                     cities.remove(city)
+                elif(city != self.main_city):
+                    return False
         if(len(cities) != 0):
             return False
         return True
 
     def crossover(self, parent1, parent2):
-        crossover_point = random.randint(1, len(parent1) - 1)
-        child1 = parent1.copy()
-        child2 = parent2.copy()
-        car1_index = random.randint(0, len(parent1) - 1)
-        car2_index = random.randint(0, len(parent2) - 1)
-        
-        car11 = child1[car1_index]
-        car12 = child2[car2_index]
-        car21 = child2[car1_index]
-        car22 = child1[car2_index]
-        car11_temp = car11[:crossover_point]+car12[crossover_point:]
-        car12_temp = car12[:crossover_point]+car11[crossover_point:]
-        car21_temp = car21[:crossover_point]+car22[crossover_point:]
-        car22_temp = car22[:crossover_point]+car21[crossover_point:]
-        
-        child1[car1_index] = car11_temp
-        child1[car2_index] = car12_temp
-        child2[car1_index] = car21_temp
-        child2[car2_index] = car22_temp
-            
+        # Initialize children as copies of parents
+        child1 = [car.copy() for car in parent1]
+        child2 = [car.copy() for car in parent2]
+
+        # Select two crossover points
+        crossover_point1 = random.randint(1, len(parent1[0]) - 2)
+        crossover_point2 = random.randint(crossover_point1 + 1, len(parent1[0]) - 1)
+
+        for car_index in range(len(parent1)):
+            # Get the cities for the current car
+            parent1_cities = parent1[car_index]
+            parent2_cities = parent2[car_index]
+
+            # Create empty lists for the children cities
+            child1_cities = [None] * len(parent1_cities)
+            child2_cities = [None] * len(parent2_cities)
+
+            # Copy the segment between the crossover points from the first parent to the first child
+            child1_cities[crossover_point1:crossover_point2] = parent1_cities[crossover_point1:crossover_point2]
+            child2_cities[crossover_point1:crossover_point2] = parent2_cities[crossover_point1:crossover_point2]
+
+            # Fill the remaining positions in the first child with cities from the second parent
+            current_pos = crossover_point2
+            for city in parent2_cities:
+                if city not in child1_cities:
+                    if current_pos >= len(child1_cities):
+                        current_pos = 0
+                    while child1_cities[current_pos] is not None:
+                        current_pos += 1
+                        if current_pos >= len(child1_cities):
+                            current_pos = 0
+                        # Break if all positions are filled
+                        if None not in child1_cities:
+                            break
+                    if None in child1_cities:
+                        child1_cities[current_pos] = city
+
+            # Fill the remaining positions in the second child with cities from the first parent
+            current_pos = crossover_point2
+            for city in parent1_cities:
+                if city not in child2_cities:
+                    if current_pos >= len(child2_cities):
+                        current_pos = 0
+                    while child2_cities[current_pos] is not None:
+                        current_pos += 1
+                        if current_pos >= len(child2_cities):
+                            current_pos = 0
+                        # Break if all positions are filled
+                        if None not in child2_cities:
+                            break
+                    if None in child2_cities:
+                        child2_cities[current_pos] = city
+
+            # Ensure the first city is the main city
+            child1_cities = [self.main_city] + [city for city in child1_cities if city is not None and city != self.main_city]
+            child2_cities = [self.main_city] + [city for city in child2_cities if city is not None and city != self.main_city]
+
+            # Update the children with the new cities
+            child1[car_index] = child1_cities
+            child2[car_index] = child2_cities
+
         return child1, child2
 
     def mutation(self, offspring):
         '''Scramble Mutation
             Randomly select two genes and swap their positions
         '''
+        if offspring == None:
+            return None
         copy = [offspring.copy()]
         result = []
         for car in offspring:
@@ -144,14 +206,14 @@ class TSP:
         population = self.initial_population(city_goods, n_population)
         best_individual = population[0]
         for generation in range(n_generations):
-            fitness = self.fitness_prob(population)
+            fitness, totalFitness = self.fitness_prob(population)
             new_population = []
             for i in range(n_population//2):
                 parents = random.choices(population, weights=fitness, k=2)
                 if random.random() < crossover_per:
                     child1, child2 = self.crossover(parents[0], parents[1])
                 else:
-                    child1, child2 = parents[0], parents[1]
+                    child1, child2 = parents[0].copy(), parents[1].copy()
                 if random.random() < mutation_per:
                     child1 = self.mutation(child1)
                 if random.random() < mutation_per:
@@ -160,7 +222,9 @@ class TSP:
                     new_population.append(child1)
                 if(self.check_cities(child2, city_goods)):
                     new_population.append(child2)
-            population = new_population
+            nuber_of_parents = round(len(population)*self.dyingFactor)
+            population = random.choices(population, weights=fitness, k=nuber_of_parents)
+            population.extend(new_population)
             population.append(best_individual)
             best_individual = min(population, key=self.total_dist_individual)
         return best_individual
@@ -209,4 +273,42 @@ class TSP:
             # Save the new solution if the file does not exist
             df.to_csv('bestvalues.csv', index=False)
             print("New solution saved to bestvalues.csv")
+    
+    def showPlot(self):
+
+        shortest_path =self.get_best_individuals(self.city_goods)
+        
+        fig, ax = plt.subplots()
+        # Define colors for different cars
+        colors = ['r', 'g', 'b', 'c', 'm']
+
+        for idx, car_path in enumerate(shortest_path):
+            x_shortest = []
+            y_shortest = []
+            for city in car_path:
+                if city in self.city_coords:
+                    x_value, y_value = self.city_coords[city]
+                    x_shortest.append(x_value)
+                    y_shortest.append(y_value)
+
+            # Close the loop by adding the starting city to the end
+            if x_shortest and y_shortest:
+                x_shortest.append(x_shortest[0])
+                y_shortest.append(y_shortest[0])
+
+            # Plot the shortest path for each car
+            ax.plot(x_shortest, y_shortest, '--o', label=f'Car {idx+1} Route', linewidth=2.5, color=colors[idx % len(colors)])
+
+        plt.legend()
+
+        # Plot all possible connections (optional)
+        for i in range(len(self.x)):
+            for j in range(i + 1, len(self.x)):
+                ax.plot([self.x[i], self.x[j]], [self.y[i], self.y[j]], 'k-', alpha=0.09, linewidth=1)
+
+        # Add labels and title
+        ax.set_xlabel('X Coordinate')
+        ax.set_ylabel('Y Coordinate')
+        ax.set_title('Shortest Paths for All Cars')
+        plt.show()
 
