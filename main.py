@@ -22,6 +22,7 @@ class TSP:
         self.car_max_capacity = car_max_capacity
         self.minimum_cities = minimum_cities
         self.main_city = main_city  # Main city
+        self.dyingFactor = 0.6
 
     def dist_two_cities(self, city_1, city_2):
         # Haversine formula to calculate the distance between two points on the Earth's surface
@@ -52,7 +53,7 @@ class TSP:
         fitness = [1 / dist for dist in total_dist_all_individuals]
         total_fitness = sum(fitness)
         fitness_prob = [f / total_fitness for f in fitness]
-        return fitness_prob
+        return fitness_prob, total_fitness
     
     def get_best_individuals(self, city_goods):
         if os.path.exists('bestvalues.csv'):
@@ -71,7 +72,7 @@ class TSP:
             population.append(self.get_best_individuals(city_goods))
         except:
             pass
-        for _ in range(n_population):
+        while len(population) != n_population:
             cars = [{'capacity': self.car_max_capacity, 'cities': []} for _ in range(self.numbers_of_cars)]
             all_Cities = city_goods.copy()
             all_Cities = all_Cities[all_Cities['city'] != self.main_city]
@@ -116,6 +117,8 @@ class TSP:
             for city in car:
                 if(city in cities):
                     cities.remove(city)
+                elif(city != self.main_city):
+                    return False
         if(len(cities) != 0):
             return False
         return True
@@ -147,6 +150,8 @@ class TSP:
         '''Scramble Mutation
             Randomly select two genes and swap their positions
         '''
+        if offspring == None:
+            return None
         copy = [offspring.copy()]
         result = []
         for car in offspring:
@@ -160,14 +165,14 @@ class TSP:
         population = self.initial_population(city_goods, n_population)
         best_individual = population[0]
         for generation in range(n_generations):
-            fitness = self.fitness_prob(population)
+            fitness, totalFitness = self.fitness_prob(population)
             new_population = []
             for i in range(n_population//2):
                 parents = random.choices(population, weights=fitness, k=2)
                 if random.random() < crossover_per:
                     child1, child2 = self.crossover(parents[0], parents[1])
                 else:
-                    child1, child2 = parents[0], parents[1]
+                    child1, child2 = parents[0].copy(), parents[1].copy()
                 if random.random() < mutation_per:
                     child1 = self.mutation(child1)
                 if random.random() < mutation_per:
@@ -176,7 +181,9 @@ class TSP:
                     new_population.append(child1)
                 if(self.check_cities(child2, city_goods)):
                     new_population.append(child2)
-            population = new_population
+            nuber_of_parents = round(len(population)*self.dyingFactor)
+            population = random.choices(population, weights=fitness, k=nuber_of_parents)
+            population.extend(new_population)
             population.append(best_individual)
             best_individual = min(population, key=self.total_dist_individual)
         return best_individual
