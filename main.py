@@ -8,7 +8,7 @@ import os
 import matplotlib.pyplot as plt
 
 class TSP:
-    def __init__(self, cities_names, x, y, city_goods, n_population, crossover_per, mutation_per, n_generations, numbers_of_cars, car_max_capacity, minimum_cities, main_city):
+    def __init__(self, cities_names, x, y, city_goods, n_population, crossover_per, mutation_per, n_generations, numbers_of_cars, car_max_capacity, minimum_cities, main_city, dyingFactor):
         self.cities_names = cities_names
         self.x = x
         self.y = y
@@ -22,7 +22,7 @@ class TSP:
         self.car_max_capacity = car_max_capacity
         self.minimum_cities = minimum_cities
         self.main_city = main_city  # Main city
-        self.dyingFactor = 0.6
+        self.dyingFactor = dyingFactor
 
     def dist_two_cities(self, city_1, city_2):
         # Haversine formula to calculate the distance between two points on the Earth's surface
@@ -124,26 +124,67 @@ class TSP:
         return True
 
     def crossover(self, parent1, parent2):
-        crossover_point = random.randint(1, len(parent1) - 1)
-        child1 = parent1.copy()
-        child2 = parent2.copy()
-        car1_index = random.randint(0, len(parent1) - 1)
-        car2_index = random.randint(0, len(parent2) - 1)
-        
-        car11 = child1[car1_index]
-        car12 = child2[car2_index]
-        car21 = child2[car1_index]
-        car22 = child1[car2_index]
-        car11_temp = car11[:crossover_point]+car12[crossover_point:]
-        car12_temp = car12[:crossover_point]+car11[crossover_point:]
-        car21_temp = car21[:crossover_point]+car22[crossover_point:]
-        car22_temp = car22[:crossover_point]+car21[crossover_point:]
-        
-        child1[car1_index] = car11_temp
-        child1[car2_index] = car12_temp
-        child2[car1_index] = car21_temp
-        child2[car2_index] = car22_temp
-            
+        # Initialize children as copies of parents
+        child1 = [car.copy() for car in parent1]
+        child2 = [car.copy() for car in parent2]
+
+        # Select two crossover points
+        crossover_point1 = random.randint(1, len(parent1[0]) - 2)
+        crossover_point2 = random.randint(crossover_point1 + 1, len(parent1[0]) - 1)
+
+        for car_index in range(len(parent1)):
+            # Get the cities for the current car
+            parent1_cities = parent1[car_index]
+            parent2_cities = parent2[car_index]
+
+            # Create empty lists for the children cities
+            child1_cities = [None] * len(parent1_cities)
+            child2_cities = [None] * len(parent2_cities)
+
+            # Copy the segment between the crossover points from the first parent to the first child
+            child1_cities[crossover_point1:crossover_point2] = parent1_cities[crossover_point1:crossover_point2]
+            child2_cities[crossover_point1:crossover_point2] = parent2_cities[crossover_point1:crossover_point2]
+
+            # Fill the remaining positions in the first child with cities from the second parent
+            current_pos = crossover_point2
+            for city in parent2_cities:
+                if city not in child1_cities:
+                    if current_pos >= len(child1_cities):
+                        current_pos = 0
+                    while child1_cities[current_pos] is not None:
+                        current_pos += 1
+                        if current_pos >= len(child1_cities):
+                            current_pos = 0
+                        # Break if all positions are filled
+                        if None not in child1_cities:
+                            break
+                    if None in child1_cities:
+                        child1_cities[current_pos] = city
+
+            # Fill the remaining positions in the second child with cities from the first parent
+            current_pos = crossover_point2
+            for city in parent1_cities:
+                if city not in child2_cities:
+                    if current_pos >= len(child2_cities):
+                        current_pos = 0
+                    while child2_cities[current_pos] is not None:
+                        current_pos += 1
+                        if current_pos >= len(child2_cities):
+                            current_pos = 0
+                        # Break if all positions are filled
+                        if None not in child2_cities:
+                            break
+                    if None in child2_cities:
+                        child2_cities[current_pos] = city
+
+            # Ensure the first city is the main city
+            child1_cities = [self.main_city] + [city for city in child1_cities if city is not None and city != self.main_city]
+            child2_cities = [self.main_city] + [city for city in child2_cities if city is not None and city != self.main_city]
+
+            # Update the children with the new cities
+            child1[car_index] = child1_cities
+            child2[car_index] = child2_cities
+
         return child1, child2
 
     def mutation(self, offspring):

@@ -1,7 +1,7 @@
 Car,Cities,Total Goods,Total Distance
-Car 1,"['Kraków', 'Krosno', 'Zamość', 'Rzeszów', 'Puławy', 'Sandomierz', 'Szczucin', 'Nowy Targ']",1000,1072.3462258191655
-Car 2,"['Kraków', 'Wieliczka', 'Gromnik', 'Białystok', 'Lublin', 'Radom', 'Kielce']",980,1091.5241034549388
+Car 1,"['Kraków', 'Chrzanów', 'Katowice', 'Gliwice', 'Poznań', 'Wrocław', 'Bielsko-Biała']",930,942.718637037062
+Car 2,"['Kraków', 'Wieliczka', 'Kielce', 'Radom', 'Białystok', 'Lublin', 'Gromnik']",980,1043.9929772416785
 Car 3,"['Kraków', 'Szklarska Poręba', 'Szczecin', 'Gdańsk', 'Gdynia', 'Malbork', 'Olsztyn']",900,1918.9794951778472
-Car 4,"['Kraków', 'Chrzanów', 'Katowice', 'Gliwice', 'Poznań', 'Wrocław', 'Bielsko-Biała']",930,942.718637037062
+Car 4,"['Kraków', 'Puławy', 'Zamość', 'Sandomierz', 'Rzeszów', 'Krosno', 'Szczucin', 'Nowy Targ']",1000,1018.9329248184034
 Car 5,"['Kraków', 'Tarnów', 'Łódź', 'Warszawa', 'Krynica-Zdrój', 'Zakopane']",680,867.2846571319033
-Total,,4490,5892.853118620917
+Total,,4490,5791.908691406895
