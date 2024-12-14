@@ -28,12 +28,10 @@ def main():
     tsp = TSP(cities_names, x,y, city_goods, n_population, crossover_per, mutation_per, n_generations, numbers_of_cars, car_max_capacity, minimum_cities, main_city, dyingFactor)
     start_time = time.time()
     tsp.run()
+    
+    end_time = time.time()
     tsp.showPlot()
     
-    # End timer
-    end_time = time.time()
-    
-    # Calculate elapsed time
     elapsed_time = end_time - start_time
     print(f"Execution time: {elapsed_time:.2f} seconds")
 
