@@ -212,16 +212,14 @@ class TSP:
                 parents = random.choices(population, weights=fitness, k=2)
                 if random.random() < crossover_per:
                     child1, child2 = self.crossover(parents[0], parents[1])
-                else:
-                    child1, child2 = parents[0].copy(), parents[1].copy()
-                if random.random() < mutation_per:
-                    child1 = self.mutation(child1)
-                if random.random() < mutation_per:
-                    child2 = self.mutation(child2)
-                if(self.check_cities(child1, city_goods)):
-                    new_population.append(child1)
-                if(self.check_cities(child2, city_goods)):
-                    new_population.append(child2)
+                    if random.random() < mutation_per:
+                        child1 = self.mutation(child1)
+                    if random.random() < mutation_per:
+                        child2 = self.mutation(child2)
+                    if(self.check_cities(child1, city_goods)):
+                        new_population.append(child1)
+                    if(self.check_cities(child2, city_goods)):
+                        new_population.append(child2)
             nuber_of_parents = round(len(population)*self.dyingFactor)
             population = random.choices(population, weights=fitness, k=nuber_of_parents)
             population.extend(new_population)
